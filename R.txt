@@ -1,0 +1,112 @@
+******Regression********
+
+library(ggplot2)
+data("iris")
+dim(iris)
+ir <- iris
+
+plot(ir$Sepal.Length, ir$Petal.Length)
+
+random <- sample(nrow(ir), 0.8 * nrow(ir))
+train_data <- ir[random,]
+test_data <- ir[-random,]
+
+model <- lm(Sepal.Length ~ Sepal.Width, train_data)
+summary(model)
+pred <- predict(model, test_data)
+
+ggplot(model, aes(Sepal.Width, Sepal.Length)) +
+  geom_point() +
+  geom_smooth(method = lm, se=F) +
+  geom_segment(aes(xend = Sepal.Width, yend = .fitted), color = "red", size = 0.3)
+
+R2 <- summary(model)$r.squared
+
+*******KNN********
+
+library(class) 
+ir <- iris
+ran <- sample(1:nrow(ir), 0.9 * nrow(ir))
+nor <- function(x) {(x - min(x))/(max(x)-min(x))}
+ir_norm <- as.data.frame(lapply(ir[,1:4], nor))
+summary(ir_norm)
+ir_train <- ir_norm[ran,]
+ir_test <- ir_norm[-ran,]
+ir_target_cat <- ir[ran,5]
+ir_test_cat <- ir[-ran,5]
+preds <- knn(ir_train, ir_test, cl=ir_target_cat, k=(round(sqrt(nrow(ir_train)))))
+tab <- table(preds, ir_test_cat)
+tab
+
+accuracy(tab)
+
+******* Naive Bayes ********
+
+library(e1071)
+
+ir1 <- ir[(sample(nrow(ir))),]
+
+ir1_train <- ir1[1:100,]
+ir1_test <- ir1[101:150,]
+
+mod <- naiveBayes(Species~., ir1_train)
+
+summary(mod)
+
+preds <- predict(mod, ir1_test)
+preds
+
+table(preds)
+table(ir1_test$Species)
+
+accuracy2 <- mean(preds == ir1_test$Species) * 100
+accuracy2
+
+******* Apriori ******
+
+library(arules)
+
+aprioriData <- read.csv("data_apriori - data_apriori.csv")
+
+trans <- split(aprioriData$Products, aprioriData$Customer_Id, "transactions")
+
+rules <- apriori(trans, parameter = list(support = 0.5, confidence = 0.9, maxlen = 3, minlen = 2))
+
+inspect(rules)
+
+******* K Means ******
+
+library(ggplot2)
+
+ir <- iris
+
+ggplot(ir, aes(Petal.Length, Petal.Width, color=ir$Species)) +
+  geom_point()
+
+
+irCluster <- kmeans(ir[,3:4], 3)
+irCluster
+
+table(irCluster$cluster, ir$Species)
+
+irCluster$cluster <- as.factor(irCluster$cluster)
+
+ggplot(ir, aes(Petal.Length, Petal.Width, color = irCluster$cluster)) +
+  geom_point()
+
+
+****** HAC ******
+
+ir <- iris
+
+#replace complete with average if required
+aggCluster <- hclust(dist(ir[,3:4]), method = "complete")
+aggCluster
+
+plot(aggCluster)
+
+cutClust <- cutree(aggCluster, k=3)
+cutClust
+
+table(ir$Species, cutClust)
+
